@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Menú Digital - Hace tu Pedido</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: system-ui, -apple-system, sans-serif; background: #f8f9fa; margin: 0; padding: 0 0 85px 0; color: #222; }
+    
+    /* Barra superior naranja */
+    .topbar { background: #ff6b2b; color: white; padding: 14px 18px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
+    .topbar-titulo { font-size: 20px; font-weight: 800; display: flex; align-items: center; gap: 8px; }
+    .btn-lupa { background: rgba(255,255,255,0.2); border: none; color: white; width: 38px; height: 38px; border-radius: 50%; font-size: 18px; cursor: pointer; }
+
+    /* Buscador desplegable */
+    .buscador-box { display: none; background: #fff; padding: 10px 15px; border-bottom: 1px solid #eee; position: sticky; top: 66px; z-index: 99; }
+    .buscador-box input { width: 100%; padding: 10px 14px; border: 1px solid #ddd; border-radius: 20px; font-size: 15px; outline: none; }
+
+    .container { max-width: 540px; margin: auto; padding: 16px; }
+    .seccion-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+    .seccion-header h2 { margin: 0; font-size: 20px; color: #d35400; font-weight: 800; }
+
+    /* Tarjetas grandes de Categorías (como en tu imagen) */
+    .cat-card { position: relative; height: 125px; border-radius: 14px; overflow: hidden; margin-bottom: 14px; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.15); background-size: cover; background-position: center; display: flex; flex-direction: column; justify-content: center; align-items: center; transition: transform 0.15s; }
+    .cat-card:active { transform: scale(0.98); }
+    .cat-overlay { position: absolute; inset: 0; background: linear-gradient(rgba(0,0,0,0.45), rgba(0,0,0,0.65)); }
+    .cat-contenido { position: relative; z-index: 2; text-align: center; padding: 0 15px; }
+    .cat-nombre { color: #ffffff; font-size: 24px; font-weight: 800; text-shadow: 0 2px 6px rgba(0,0,0,0.8); margin: 0 0 6px 0; }
+    .cat-badge { display: inline-block; background: #e8f8f5; color: #1e8449; font-size: 11px; font-weight: 800; padding: 4px 12px; border-radius: 20px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    /* Vista de Platos dentro de una Categoría */
+    .btn-volver { background: #fff; border: 1px solid #ddd; color: #333; padding: 8px 14px; border-radius: 20px; font-weight: bold; font-size: 14px; cursor: pointer; margin-bottom: 14px; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+    .item { background: #fff; display: flex; justify-content: space-between; align-items: center; border-radius: 12px; padding: 12px; margin-bottom: 10px; gap: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+    .item-foto { width: 78px; height: 78px; object-fit: cover; border-radius: 10px; flex-shrink: 0; background: #eee; cursor: zoom-in; }
+    .item-info { flex-grow: 1; }
+    .item-info h3 { margin: 0 0 4px 0; font-size: 16px; color: #222; }
+    .item-info p { margin: 0; color: #666; font-size: 13px; line-height: 1.3; }
+    .precio { font-weight: 800; color: #27ae60; margin-top: 6px; font-size: 16px; }
+    .controles { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+    .btn-cant { width: 32px; height: 32px; border: none; border-radius: 50%; background: #ff6b2b; color: white; font-size: 18px; font-weight: bold; cursor: pointer; }
+    .cant-num { font-weight: bold; min-width: 18px; text-align: center; font-size: 15px; }
+
+    /* Barra flotante inferior del Carrito */
+    .barra-carrito { display: none; position: fixed; bottom: 0; left: 0; width: 100%; background: #2c3e50; color: white; padding: 14px 20px; justify-content: space-between; align-items: center; z-index: 200; box-shadow: 0 -3px 12px rgba(0,0,0,0.2); }
+    .barra-carrito button { background: #27ae60; color: white; border: none; padding: 10px 18px; border-radius: 8px; font-weight: bold; font-size: 15px; cursor: pointer; }
+
+    /* Formulario de Checkout y Pantalla de Pago */
+    .card-form { background: #fff; padding: 18px; border-radius: 14px; box-shadow: 0 3px 12px rgba(0,0,0,0.06); margin-top: 15px; }
+    label { font-weight: 600; font-size: 14px; display: block; margin-top: 10px; }
+    input, select, textarea { width: 100%; padding: 11px; margin: 5px 0 12px 0; border: 1px solid #ccc; border-radius: 8px; font-size: 15px; }
+    .btn-enviar { width: 100%; padding: 15px; background: #27ae60; color: white; border: none; border-radius: 10px; font-size: 17px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+    .btn-enviar:disabled { background: #95a5a6; }
+    .cargando { text-align: center; padding: 40px; color: #666; font-style: italic; }
+
+    .visor-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 1000; justify-content: center; align-items: center; flex-direction: column; padding: 20px; }
+    .visor-modal img { max-width: 95%; max-height: 75vh; border-radius: 12px; }
+    .visor-titulo { color: white; font-size: 18px; font-weight: bold; margin-top: 15px; }
+    .visor-cerrar { color: #ccc; font-size: 14px; margin-top: 8px; }
+
+    .pago-box { display: none; background: #fff; padding: 20px; border-radius: 14px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.08); }
+    .codigo-ticket { background: #2c3e50; color: #f1c40f; padding: 14px; border-radius: 10px; margin-bottom: 16px; }
+    .codigo-ticket span { display: block; color: #ecf0f1; font-size: 13px; text-transform: uppercase; letter-spacing: 1px; }
+    .codigo-ticket strong { font-size: 36px; letter-spacing: 3px; }
+    .pago-alerta { background: #fff3cd; border: 1px solid #ffeeba; color: #856404; padding: 14px; border-radius: 10px; font-size: 15px; margin-bottom: 18px; line-height: 1.4; }
+    .datos-banco { background: #f8f9fa; border: 2px dashed #bdc3c7; padding: 16px; border-radius: 10px; margin-bottom: 20px; text-align: left; font-size: 15px; line-height: 1.6; }
+    .btn-copiar { background: #34495e; color: white; border: none; padding: 7px 12px; border-radius: 6px; font-size: 13px; cursor: pointer; margin-top: 8px; }
+    .btn-wsp { display: block; width: 100%; padding: 16px; background: #25D366; color: white; text-decoration: none; border-radius: 10px; font-size: 17px; font-weight: bold; box-shadow: 0 4px 10px rgba(37, 211, 102, 0.3); }
+    .btn-nuevo { background: none; border: none; color: #666; text-decoration: underline; margin-top: 20px; cursor: pointer; font-size: 14px; }
+  </style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-titulo" onclick="mostrarCategorias()" style="cursor:pointer;">🍔 Santino Burguers</div>
+  <button class="btn-lupa" onclick="toggleBuscador()">🔍</button>
+</div>
+
+<div class="buscador-box" id="buscador-box">
+  <input type="text" id="input-busqueda" placeholder="Buscar hamburguesa, lomito, bebida..." oninput="buscarPlato()">
+</div>
+
+<div class="container">
+  <!-- PANTALLA 1: TARJETAS DE CATEGORÍAS -->
+  <div id="vista-categorias">
+    <div class="seccion-header">
+      <h2>Categorías</h2>
+    </div>
+    <div id="lista-categorias"><div class="cargando">Cargando menú...</div></div>
+  </div>
+
+  <!-- PANTALLA 2: PLATOS DE LA CATEGORÍA SELECCIONADA -->
+  <div id="vista-platos" style="display:none;">
+    <button class="btn-volver" onclick="mostrarCategorias()">← Volver a categorías</button>
+    <div class="seccion-header">
+      <h2 id="titulo-categoria-actual">Platos</h2>
+    </div>
+    <div id="lista-platos"></div>
+  </div>
+
+  <!-- PANTALLA 3: FINALIZAR PEDIDO (DATOS DEL CLIENTE) -->
+  <div id="vista-checkout" style="display:none;">
+    <button class="btn-volver" onclick="mostrarCategorias()">← Seguir agregando</button>
+    <div class="card-form">
+      <h2 style="margin-top:0; color:#d35400;">Resumen de tu Pedido</h2>
+      <div id="resumen-checkout" style="background:#f8f9fa; padding:12px; border-radius:8px; margin-bottom:15px; font-size:15px; line-height:1.5;"></div>
+      <div style="font-size:20px; font-weight:bold; text-align:right; color:#27ae60; margin-bottom:15px;">
+        Total: $<span id="total-checkout">0</span>
+      </div>
+
+      <label for="cliente">Tu Nombre *</label>
+      <input type="text" id="cliente" placeholder="Ej: Juan Pérez" required>
+
+      <label for="telefono">Tu WhatsApp (para avisarte cuando salga) *</label>
+      <input type="tel" id="telefono" placeholder="Ej: 3794123456" required>
+      
+      <label for="modalidad">¿Cómo lo querés?</label>
+      <select id="modalidad">
+        <option value="Retiro en local">Retiro en el local</option>
+        <option value="Consumo en mesa">Consumo en mesa</option>
+        <option value="Envío a domicilio">Envío a domicilio</option>
+      </select>
+
+      <label for="notas">Mesa / Dirección / Aclaraciones</label>
+      <textarea id="notas" rows="2" placeholder="Ej: Mesa 4, o Av. San Martín 123, sin mayonesa..."></textarea>
+
+      <button class="btn-enviar" id="btn-confirmar" onclick="enviarPedido()">✅ Confirmar Pedido</button>
+    </div>
+  </div>
+
+  <!-- PANTALLA 4: CÓDIGO ÚNICO, TRANSFERENCIA Y WHATSAPP -->
+  <div id="seccion-pago" class="pago-box">
+    <h2 style="color: #27ae60; margin-top: 0;">¡Pedido Registrado! 🎉</h2>
+    
+    <div class="codigo-ticket">
+      <span>Tu Código de Pedido</span>
+      <strong id="codigo-asignado">#0000</strong>
+    </div>
+
+    <div class="pago-alerta">
+      ⚠️ <strong>Importante:</strong> Tu pedido comenzará a prepararse una vez que recibamos la transferencia y el comprobante por WhatsApp.
+    </div>
+
+    <div class="datos-banco">
+      <div><strong>Monto a transferir:</strong> <span style="color:#27ae60; font-size:19px; font-weight:bold;">$<span id="pago-monto">0</span></span></div>
+      <div><strong>Alias:</strong> <span id="texto-alias">TU.ALIAS.AQUI</span></div>
+      <div><strong>CBU / CVU:</strong> <span id="texto-cbu">0000000000000000000000</span></div>
+      <div><strong>Titular:</strong> <span id="texto-titular">Tu Nombre o Local</span></div>
+      <button class="btn-copiar" onclick="copiarAlias()">📋 Copiar Alias</button>
+    </div>
+
+    <a id="link-whatsapp" href="#" target="_blank" class="btn-wsp">
+      📲 Enviar Pedido y Comprobante por WhatsApp
+    </a>
+
+    <button class="btn-nuevo" onclick="location.reload()">Hacer otro pedido</button>
+  </div>
+</div>
+
+<!-- BARRA INFERIOR DEL CARRITO -->
+<div class="barra-carrito" id="barra-carrito">
+  <div>
+    <div style="font-size:12px; opacity:0.8;" id="barra-items">0 productos</div>
+    <div style="font-size:18px; font-weight:bold;">$<span id="barra-total">0</span></div>
+  </div>
+  <button onclick="irACheckout()">Ver Pedido →</button>
+</div>
+
+<div id="visor" class="visor-modal" onclick="cerrarFoto()">
+  <img id="visor-img" src="" alt="">
+  <div id="visor-texto" class="visor-titulo"></div>
+  <div class="visor-cerrar">Tocá en cualquier lugar para cerrar</div>
+</div>
+<script>
+  // ⚠️ 1. PEGA AQUÍ TU URL DE GOOGLE APPS SCRIPT ⚠️
+  const URL_SCRIPT = "https://script.google.com/macros/s/AKfycbx3dPeS198aclV52zSGTmlxXXObHyZZ-0I_EyidR76222gmekiX3rrczFNM5sFHogiB/exec";
+
+  // 📱 2. CONFIGURA TU WHATSAPP Y DATOS BANCARIOS 📱
+  const WHATSAPP_LOCAL = "5493794220462";
+  const DATOS_BANCO = {
+    alias: "MI.LOCAL.COMIDAS",
+    cbu: "0000003100000000000000",
+    titular: "Nombre del Titular"
+  };
+
+  document.getElementById("texto-alias").textContent = DATOS_BANCO.alias;
+  document.getElementById("texto-cbu").textContent = DATOS_BANCO.cbu;
+  document.getElementById("texto-titular").textContent = DATOS_BANCO.titular;
+
+  let productos = [];
+  let carrito = {};
+  const FOTO_DEFECTO = "https://unsplash.com";
+
+  fetch(URL_SCRIPT)
+    .then(res => res.json())
+    .then(filas => {
+      for (let i = 1; i < filas.length; i++) {
+        const [id, categoria, nombre, desc, precio, disponible, foto] = filas[i];
+        if (String(disponible).trim().toUpperCase() === "SI") {
+          productos.push({ 
+            id: String(id), 
+            categoria: String(categoria || "Menú").trim(), 
+            nombre: String(nombre).trim(), 
+            desc: String(desc || "").trim(), 
+            precio: Number(precio), 
+            foto: String(foto || "").trim() 
+          });
+          carrito[String(id)] = 0;
+        }
+      }
+      renderizarCategorias();
+    });
+
+  function renderizarCategorias() {
+    const contenedor = document.getElementById("lista-categorias");
+    contenedor.innerHTML = "";
+    const categorias = [...new Set(productos.map(p => p.categoria))];
+
+    if (categorias.length === 0) {
+      contenedor.innerHTML = "<div class='cargando'>No hay productos disponibles.</div>";
+      return;
+    }
+
+    categorias.forEach(cat => {
+      const platosDeCat = productos.filter(p => p.categoria === cat);
+      const conFoto = platosDeCat.find(p => p.foto !== "");
+      const imgFondo = conFoto ? conFoto.foto : FOTO_DEFECTO;
+      const catSegura = cat.replace(/'/g, "\\'");
+
+      contenedor.innerHTML += `
+        <div class="cat-card" style="background-image: url('${imgFondo}');" onclick="abrirCategoria('${catSegura}')">
+          <div class="cat-overlay"></div>
+          <div class="cat-contenido">
+            <h3 class="cat-nombre">${cat}</h3>
+            <span class="cat-badge">${platosDeCat.length} opciones disponibles</span>
+          </div>
+        </div>
+      `;
+    });
+  }
+
+  function abrirCategoria(cat) {
+    document.getElementById("vista-categorias").style.display = "none";
+    document.getElementById("vista-checkout").style.display = "none";
+    document.getElementById("vista-platos").style.display = "block";
+    document.getElementById("titulo-categoria-actual").textContent = cat;
+    
+    const filtrados = productos.filter(p => p.categoria === cat);
+    dibujarListaPlatos(filtrados);
+    window.scrollTo(0, 0);
+  }
+
+  function dibujarListaPlatos(lista) {
+    const contenedor = document.getElementById("lista-platos");
+    contenedor.innerHTML = "";
+
+    lista.forEach(plato => {
+      const nombreSeguro = plato.nombre.replace(/'/g, "\\'");
+      const imgHTML = plato.foto 
+        ? `<img src="${plato.foto}" class="item-foto" alt="${plato.nombre}" onclick="abrirFoto('${plato.foto}', '${nombreSeguro}')">` 
+        : "";
+
+      contenedor.innerHTML += `
+        <div class="item">
+          ${imgHTML}
+          <div class="item-info">
+            <h3>${plato.nombre}</h3>
+            <p>${plato.desc}</p>
+            <div class="precio">$${plato.precio.toLocaleString('es-AR')}</div>
+          </div>
+          <div class="controles">
+            <button class="btn-cant" onclick="cambiarCantidad('${plato.id}', -1)">-</button>
+            <span class="cant-num" id="cant-${plato.id}">${carrito[plato.id]}</span>
+            <button class="btn-cant" onclick="cambiarCantidad('${plato.id}', 1)">+</button>
+          </div>
+        </div>
+      `;
+    });
+  }
+
+  function mostrarCategorias() {
+    document.getElementById("vista-platos").style.display = "none";
+    document.getElementById("vista-checkout").style.display = "none";
+    document.getElementById("vista-categorias").style.display = "block";
+    document.getElementById("input-busqueda").value = "";
+    actualizarBarraCarrito();
+  }
+
+  function toggleBuscador() {
+    const box = document.getElementById("buscador-box");
+    const visible = box.style.display === "block";
+    box.style.display = visible ? "none" : "block";
+    if (!visible) document.getElementById("input-busqueda").focus();
+  }
+
+  function buscarPlato() {
+    const texto = document.getElementById("input-busqueda").value.trim().toLowerCase();
+    if (!texto) return mostrarCategorias();
+
+    document.getElementById("vista-categorias").style.display = "none";
+    document.getElementById("vista-checkout").style.display = "none";
+    document.getElementById("vista-platos").style.display = "block";
+    document.getElementById("titulo-categoria-actual").textContent = `Resultados para "${texto}"`;
+
+    const filtrados = productos.filter(p => 
+      p.nombre.toLowerCase().includes(texto) || p.desc.toLowerCase().includes(texto)
+    );
+    dibujarListaPlatos(filtrados);
+  }
+  function cambiarCantidad(id, cambio) {
+    if (carrito[id] + cambio >= 0) {
+      carrito[id] += cambio;
+      const span = document.getElementById(`cant-${id}`);
+      if (span) span.textContent = carrito[id];
+      actualizarBarraCarrito();
+    }
+  }
+
+  function actualizarBarraCarrito() {
+    let total = 0;
+    let cantItems = 0;
+    productos.forEach(p => {
+      total += carrito[p.id] * p.precio;
+      cantItems += carrito[p.id];
+    });
+
+    const barra = document.getElementById("barra-carrito");
+    if (cantItems > 0 && document.getElementById("vista-checkout").style.display === "none" && document.getElementById("seccion-pago").style.display !== "block") {
+      barra.style.display = "flex";
+      document.getElementById("barra-items").textContent = `${cantItems} ${cantItems === 1 ? 'producto' : 'productos'}`;
+      document.getElementById("barra-total").textContent = total.toLocaleString('es-AR');
+    } else {
+      barra.style.display = "none";
+    }
+    return total;
+  }
+
+  function irACheckout() {
+    const total = actualizarBarraCarrito();
+    document.getElementById("vista-categorias").style.display = "none";
+    document.getElementById("vista-platos").style.display = "none";
+    document.getElementById("barra-carrito").style.display = "none";
+    document.getElementById("vista-checkout").style.display = "block";
+
+    let htmlResumen = "";
+    productos.forEach(p => {
+      if (carrito[p.id] > 0) {
+        htmlResumen += `<div>• <strong>${carrito[p.id]}x</strong> ${p.nombre} ($${(carrito[p.id] * p.precio).toLocaleString('es-AR')})</div>`;
+      }
+    });
+    document.getElementById("resumen-checkout").innerHTML = htmlResumen;
+    document.getElementById("total-checkout").textContent = total.toLocaleString('es-AR');
+    window.scrollTo(0, 0);
+  }
+
+  function abrirFoto(url, nombre) {
+    document.getElementById("visor-img").src = url;
+    document.getElementById("visor-texto").textContent = nombre;
+    document.getElementById("visor").style.display = "flex";
+  }
+
+  function cerrarFoto() {
+    document.getElementById("visor").style.display = "none";
+  }
+
+  function copiarAlias() {
+    navigator.clipboard.writeText(DATOS_BANCO.alias);
+    alert("¡Alias copiado! " + DATOS_BANCO.alias);
+  }
+
+  function generarCodigoUnico() {
+    const letras = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+    const letra = letras[Math.floor(Math.random() * letras.length)];
+    const tiempo = String(Date.now()).slice(-2);
+    const azar = Math.floor(10 + Math.random() * 89);
+    return `${letra}${tiempo}${azar}`.slice(0, 4);
+  }
+
+  function enviarPedido() {
+    const cliente = document.getElementById("cliente").value.trim();
+    const telefono = document.getElementById("telefono").value.replace(/\D/g, "");
+    const modalidad = document.getElementById("modalidad").value;
+    const notas = document.getElementById("notas").value.trim();
+    const total = actualizarBarraCarrito();
+
+    if (total === 0) return alert("Por favor, elegí al menos un producto.");
+    if (!cliente) return alert("Por favor, escribí tu nombre.");
+    if (telefono.length < 8) return alert("Por favor, ingresá un número de WhatsApp válido.");
+
+    const codigo = generarCodigoUnico();
+    let resumen = [];
+    productos.forEach(plato => {
+      if (carrito[plato.id] > 0) resumen.push(`${carrito[plato.id]}x ${plato.nombre}`);
+    });
+
+    const btn = document.getElementById("btn-confirmar");
+    btn.disabled = true;
+    btn.textContent = "Registrando pedido...";
+
+    fetch(URL_SCRIPT, {
+      method: "POST",
+      body: JSON.stringify({ 
+        cliente, telefono, modalidad, 
+        detalle: resumen.join(" | "), 
+        total, notas: notas || "Sin aclaraciones", codigo
+      })
+    })
+    .then(() => {
+      document.getElementById("codigo-asignado").textContent = `#${codigo}`;
+      document.getElementById("pago-monto").textContent = total.toLocaleString('es-AR');
+      
+      const mensajeWsp = `¡Hola! Acabo de hacer un pedido:\n\n` +
+        `🎟️ *CÓDIGO DE PEDIDO:* #${codigo}\n` +
+        `👤 *Cliente:* ${cliente}\n` +
+        `📱 *WhatsApp:* ${telefono}\n` +
+        `🛵 *Modalidad:* ${modalidad}\n` +
+        `🍔 *Pedido:*\n• ${resumen.join("\n• ")}\n` +
+        `📝 *Notas:* ${notas || "Ninguna"}\n` +
+        `💰 *Total:* $${total.toLocaleString('es-AR')}\n\n` +
+        `Ya realicé la transferencia al alias *${DATOS_BANCO.alias}*, te adjunto el comprobante 👇`;
+
+      const urlWsp = `https://wa.me{WHATSAPP_LOCAL}?text=${encodeURIComponent(mensajeWsp)}`;
+      document.getElementById("link-whatsapp").href = urlWsp;
+
+      document.getElementById("vista-checkout").style.display = "none";
+      document.getElementById("seccion-pago").style.display = "block";
+      window.scrollTo(0, 0);
+      window.open(urlWsp, "_blank");
+    })
+    .catch(() => {
+      alert("Hubo un problema al enviar. Intentá de nuevo.");
+      btn.disabled = false;
+      btn.textContent = "✅ Confirmar Pedido";
+    });
+  }
+</script>
+
+</body>
+</html>
